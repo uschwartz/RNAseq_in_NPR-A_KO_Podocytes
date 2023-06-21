@@ -1,0 +1,87 @@
+---
+title: "Differential Expression RNAseq NPRA-kd"
+author: "Uwe Schwartz"
+date: "08/04/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+work.path<- "~/Analysis/Analysis_sync/17_NPRA_kidney/"
+knitr::opts_knit$set(root.dir =work.path)
+#setwd(work.path)
+out.path<-paste0(work.path,"/figures/Metascape/")
+dir.create(out.path, recursive = T, showWarnings = F)
+```
+
+## Dependencies & Libraries
+
+#### Load packages
+```{r libraries, message=FALSE}
+library(DESeq2)
+```
+
+##Import data
+
+```{r import Data}
+# load 
+load("data/obj/dds.diff.rda")
+load("data/obj/res.rda")
+load("data/obj/res.sig.rda")
+results<-read.delim("data/result_table_withTPM.tsv")
+```
+
+
+```{r getGenes}
+
+## for metascape
+path.meta=paste("data//Metascape",sep="/")
+dir.create(path.meta, showWarnings = F, recursive = T)
+
+### universe
+# filter not expressed genes
+
+universe<-as.character(results[results$expressed,"EnsemblID"])
+write.table(universe,
+              file=paste0(path.meta,"/universe_genes_id.txt"), sep="\n",
+              quote=F, col.names=F, row.names = F)
+
+
+## down and up -regulated genes
+res.up<-subset(res.sig, log2FoldChange>0)
+write.table(res.up$EnsemblID, 
+              file=paste0(path.meta,"/upReg_genes_id.txt"), sep="\n",
+              quote=F, col.names=F, row.names = F)
+
+  
+res.down<-subset(res.sig, log2FoldChange<0)
+write.table(res.down$EnsemblID,
+              file=paste0(path.meta,"/downReg_genes_id.txt"), sep="\n",
+              quote=F, col.names=F, row.names = F)
+
+#combine
+combined<-data.frame(Name=c("up","down"),
+           Genes=c(paste(res.up$EnsemblID, collapse = ","),
+                   paste(res.down$EnsemblID, collapse = ",")))
+
+write.table(combined,
+              file=paste0(path.meta,"/combined_genes_id.txt"), sep="\t",
+              quote=F, col.names=F, row.names = F)
+
+
+
+```
+
+
+
+
+##Session info
+```{r info}
+sessionInfo()
+
+
+```
+
+
+

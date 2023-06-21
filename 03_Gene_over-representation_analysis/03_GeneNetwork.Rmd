@@ -1,0 +1,139 @@
+---
+title: "GeneEnrichment NPRA-kd"
+author: "Uwe Schwartz"
+date: "23/05/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+work.path<- "~/Analysis/Analysis_sync/17_NPRA_kidney/"
+knitr::opts_knit$set(root.dir =work.path)
+#setwd(work.path)
+out.path<-paste0(work.path,"/figures/Metascape_woNPR1/plots")
+dir.create(out.path, recursive = T, showWarnings = F)
+```
+
+## Dependencies & Libraries
+
+#### Load packages
+```{r libraries, message=FALSE}
+library(RColorBrewer)
+library(clusterProfiler)
+library(enrichplot)
+library(stringr)
+library(ggplot2)
+```
+
+##Import data
+
+```{r metascape}
+# load 
+GO.final<-read.csv("figures/Metascape_woNPR1//combined_woNPR1//Enrichment_GO/_FINAL_GO.csv")
+sel.GO<-read.delim("figures/Metascape_woNPR1//plots/Dotplot_metascape_table.txt")
+
+res<-read.delim("data/result_table_withTPM.tsv")
+```
+
+## plot
+
+```{r make Plot}
+GOred<-GO.final[,c("X_LogP_down","X_LogP_up","GO","Description",
+            "GROUP_ID", "X.GeneInGO","X.GeneInGOAndHitList","BestLogPInGroup",
+            "Category","Hits","GeneID")]
+GOoI<-c("GO:0030312","GO:0044057","GO:0004930",
+                                  "GO:0009611","GO:0005509","GO:0045765",
+                                 "GO:0030545","GO:0001776","GO:0030335",
+        "GO:0030323","GO:0043292","GO:0034330","GO:0003013","GO:0051056",
+        "GO:0010721","GO:0072001","GO:0042578","GO:0019001","GO:0034220","GO:0031252")
+
+GOdf<-GOred[which(GOred$GO %in% GOoI),]
+
+go.list<-split(GOdf$Hits, GOdf$Description)
+
+x<-lapply(go.list,function(x) str_split_1(x,"\\|"))
+
+
+logFC<-res$log2FoldChange
+names(logFC)<-res$symbol
+
+
+
+cnetplot(x[sel.GO$Description], foldChange=logFC, cex_label_category = 1,showCategory = 20) + 
+        scale_color_gradient2(name='log2(FoldChange)', 
+                              low="#2166AC", high="#B2182B")
+
+
+
+pdf(paste0(out.path,"/GeneNetwork_mainTerms.pdf"), width = 15, height = 9)
+    cnetplot(x[sel.GO$Description], foldChange=logFC, cex_label_category = 1,showCategory = 20) + 
+        scale_color_gradient2(name='log2(FoldChange)', 
+                              low="#2166AC", high="#B2182B")
+dev.off()
+
+
+subsetting<-c("renal system development","response to wounding","circulatory system process",
+  "positive regulation of cell migration","external encapsulating structure",
+  "regulation of angiogenesis")
+
+pdf(paste0(out.path,"/GeneNetwork_subsetted.pdf"), width = 12, height = 7)
+    cnetplot(x[subsetting], foldChange=logFC, cex_label_category = 1,showCategory = 20) + 
+        scale_color_gradient2(name='log2(FoldChange)', 
+                              low="#2166AC", high="#B2182B")
+dev.off()
+
+```
+
+
+
+
+```{r make Plot migration}
+GOdf<-GOred[GOred$GROUP_ID ==9,]
+
+go.list<-split(GOdf$Hits, GOdf$Description)
+
+x<-lapply(go.list,function(x) str_split_1(x,"\\|"))
+
+
+logFC<-res$log2FoldChange
+names(logFC)<-res$symbol
+
+
+
+cnetplot(x, foldChange=logFC, cex_label_category = 1,showCategory = 20) + 
+        scale_color_gradient2(name='log2(FoldChange)', 
+                              low="#2166AC", high="#B2182B")
+
+pdf(paste0(out.path,"/GeneNetwork_migration.pdf"), width = 12, height = 7)
+    cnetplot(x, foldChange=logFC, cex_label_category = 1,showCategory = 20) + 
+        scale_color_gradient2(name='log2(FoldChange)', 
+                              low="#2166AC", high="#B2182B")
+dev.off()
+
+subsetting<-c("positive regulation of cell activation",
+              "positive regulation of cell adhesion",
+              "positive regulation of cell migration",
+              "positive regulation of cell motility",
+              "positive regulation of cell-cell adhesion",
+              "positive regulation of locomotion")
+
+pdf(paste0(out.path,"/GeneNetwork_migration_subsetted.pdf"), width = 9, height = 5)
+    cnetplot(x[subsetting], foldChange=logFC, cex_label_category = 1,showCategory = 20) + 
+        scale_color_gradient2(name='log2(FoldChange)', 
+                              low="#2166AC", high="#B2182B")
+dev.off()
+
+```
+
+
+
+##Session info
+```{r info}
+sessionInfo()
+
+
+```
+
+
+

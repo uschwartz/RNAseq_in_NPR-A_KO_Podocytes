@@ -1,0 +1,120 @@
+---
+title: "GeneEnrichment NPRA-kd"
+author: "Uwe Schwartz"
+date: "23/05/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+work.path<- "~/Analysis/Analysis_sync/17_NPRA_kidney/"
+knitr::opts_knit$set(root.dir =work.path)
+#setwd(work.path)
+out.path<-paste0(work.path,"/figures/Metascape_woNPR1/plots")
+dir.create(out.path, recursive = T, showWarnings = F)
+```
+
+## Dependencies & Libraries
+
+#### Load packages
+```{r libraries, message=FALSE}
+
+library(ggplot2)
+library(stringr)
+
+```
+
+##Import data
+
+```{r import Data}
+gene.anno<-read.csv2("figures/Metascape_woNPR1/combined_woNPR1//metascape_Annotation.csv")
+down.ez<-as.character(gene.anno$Gene[gene.anno$down==1])
+up.ez<-as.character(gene.anno$Gene[gene.anno$up==1])
+
+GO.final<-read.csv("figures/Metascape_woNPR1/combined_woNPR1//Enrichment_GO/_FINAL_GO.csv")
+GOred<-GO.final[,c("X_LogP_down","X_LogP_up","GO","Description",
+            "GROUP_ID", "X.GeneInGO","X.GeneInGOAndHitList","BestLogPInGroup",
+            "Category","Hits","GeneID")]
+
+
+
+#split(GOred, GOred$GROUP_ID)
+
+```
+
+
+```{r getGenes}
+
+GOoI<-c("GO:0030312","GO:0044057","GO:0004930",
+                                  "GO:0009611","GO:0005509","GO:0045765",
+                                 "GO:0030545","GO:0001776","GO:0030335",
+        "GO:0030323","GO:0043292","GO:0034330","GO:0003013","GO:0051056",
+        "GO:0010721","GO:0072001","GO:0042578","GO:0019001","GO:0034220","GO:0031252")
+        
+GOdf<-GOred[which(GOred$GO %in% GOoI),]
+
+
+down.df<-GOdf[,-2]
+colnames(down.df)[1]<-"log.p.value"
+down.df$regulation<-"down-regulated"
+down.df$n.genes<-sapply(str_split(down.df$GeneID,"\\|"),
+       function(x) sum(x %in% down.ez))
+
+
+top.down<-down.df$GO[order(down.df$log.p.value)[1:7]]
+
+up.df<-GOdf[,-1]
+colnames(up.df)[1]<-"log.p.value"
+up.df$regulation<-"up-regulated"
+up.df$n.genes<-sapply(str_split(up.df$GeneID,"\\|"),
+       function(x) sum(x %in% up.ez))
+
+
+
+final.df<-rbind(up.df,down.df)
+
+final.df$Description<-factor(final.df$Description,levels =rev( 
+                    unique(final.df[order(final.df$log.p.value),"Description"])))
+
+## select top 7 each
+top.down<-down.df$GO[order(down.df$log.p.value)[1:7]]
+top.up<-up.df$GO[order(up.df$log.p.value)[1:7]]
+
+final.sub<-subset(final.df,final.df$GO %in% unique(c(top.up,top.down)))
+
+
+g<-ggplot(final.sub,aes(x=regulation, y=Description, fill=c(-1)*log.p.value,
+                    size=n.genes))+
+    geom_point(colour="black",pch=21)+theme_bw()+
+    scale_fill_gradientn(colours=c("white",
+                            RColorBrewer::brewer.pal(4,"Oranges")[c(1,2,rep(3:4,each=2))]),
+                         name="-log(p-value)")+
+    scale_size(range = c(0.1,7), name="gene number")+xlab("")+ylab("")
+
+
+print(g)
+
+
+pdf(paste0(out.path,"/Dotplot_metascape.pdf"), width=6, height=3.5)
+    print(g)
+
+dev.off()
+
+write.table(final.sub, file = "figures/Metascape_woNPR1//plots/Dotplot_metascape_table.txt",
+            row.names = F, col.names = T, sep="\t", quote = F)
+
+```
+
+
+
+
+##Session info
+```{r info}
+sessionInfo()
+
+
+```
+
+
+
